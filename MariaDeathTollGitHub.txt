@@ -1,0 +1,131 @@
+# The following code was created to assess the number of deaths in Puerto Rico 
+# due to Hurricane Maria. The code
+#     - uses a profile likelihood method with two data models: 
+#       a binomial distribution and a Poisson distribution.
+#     - checks the coverage of the Binomial and Poisson models
+#     - uses a normal approximation
+# By Roberto Rivera and Wolfgang Rolke, December 11,2017
+
+# A normal approximation is also applied
+library(RConics)
+pr.deaths <-
+function(T=3350535,n=11,y=11*119,model="Binomial", doGraph=TRUE, doSim = FALSE,museq=1000) {
+  m=19;
+  x <- 83*m
+  N <- T*n  #To account for pop size reduction in October use here: (T*11+3200000*31)
+  M <- T*m
+  mle<-y/N - x/M
+  if(model=="Poisson") mle<-(y/n-x/m)
+  cf <- function(mu){
+    (c((1-mu)*x*mu, 
+              x+y-(N+M)*mu-2*x*mu+M*mu^2,
+             -x-y-N-M+N*mu+2*M*mu,
+             N+M)/(N+M))[4:1]
+  
+  }
+ proflike <- function(a) {
+    if(model=="Binomial") {
+      phathat <- Re(cubic(cf(a)))[3]
+      return( 
+  (-2)*(
+        y*(log(y/N)-log(a+phathat))+
+        (N-y)*(log(1-y/N)-log(1-a-phathat)) +        x*(log(x/M)-log(phathat))+
+        (M-x)*(log(1-x/M)-log(1-phathat))
+        ))
+    }
+   if(model=="Poisson") {
+phathat <- (x+y-(m+n)*a+sqrt((x+y-(m+n)*a)^2+4*(m+n)*x*a))/2/(m+n)
+return(
+(-2)*(x*log(x/m)-x - y*log(a+phathat) + n*(a+phathat) + y*log(y/n)-y - x*log(phathat) + m*phathat
+))
+}
+}
+  
+  
+  if(doSim) {
+    if(model=="Binomial") {
+      mu <- y/N - x/M
+      pi0<-x/M
+    x <- rbinom(1, M, pi0)
+    y <- rbinom(1, N, mu+pi0)
+    mle<-y/N - x/M
+  }
+  if(model=="Poisson") {
+        lambda <- x/m
+        rho <- y/n-x/m
+        x <- rpois(1, m*lambda)
+        y <- rpois(1, n*(rho+lambda))
+        mle <- (y/n-x/m)
+  }
+  }
+
+  z <- proflike(mle)-qchisq(0.95, 1)
+  L <- 0
+  H <- mle
+  repeat {
+    mid <- (L+H)/2
+    if(proflike(mid)<z) L <- mid
+    else H <- mid
+    if(H-L<10^(-8)) break
+  }
+  Left <- mid
+  H <- mle
+  repeat {
+    H <- H+(mle-Left)
+    if(proflike(H)<z) break
+  }
+  L <- H-(mle-Left)
+  repeat {
+    mid <- (L+H)/2
+    if(proflike(mid)>z) L <- mid
+    else H <- mid
+    if(H-L<10^(-8)) break
+  }
+  Right <- mid
+  
+  if(doGraph) {
+    mu0 <- seq((0.38*mle), (1.38*mle), length=museq)
+    plike <- 0*mu0
+    for(i in 1:length(mu0)) 
+      plike[i] <- proflike(mu0[i])
+    plot(ifelse(model=="Binomial", N, n)*mu0, plike, type="l",
+         ylab="Profile Likelihood",xlab=bquote(N~mu[0]))
+    abline(v=mle*ifelse(model=="Binomial", N, n))
+    abline(h=z)
+    abline(v=ifelse(model=="Binomial", N , n)*c(Left, Right))
+  }
+  round(c(Left, Right)*ifelse(model=="Binomial", N , n), 1)
+}
+    
+pr.deaths(y=(11*119+2906),n=42)    #CI for death toll first 42 days
+
+pr.deaths(y=(11*119+2906),n=42,model="Poisson")    #CI for death toll first 42 days, Poisson model
+
+pr.deaths() #CI for death toll first 11 days
+
+# To assess coverage
+
+B <- 10000
+est<-((119*11+2906)/(11+31)-83)*(11+31)
+Intervals <- matrix(0, B, 2)
+set.seed(48481)
+for(i in 1:B) Intervals[i, ] <- pr.deaths(y=(11*119+2906),n=42,doSim = TRUE, doGraph = FALSE)
+100-(length(c(1:B)[Intervals[ ,1]>est]) + length(c(1:B)[Intervals[ ,2]<est]))/B*100
+set.seed(48482)
+for(i in 1:B) Intervals[i, ] <- pr.deaths(y=(11*119+2906),n=42,model="Poisson", doSim = TRUE, doGraph = FALSE)
+100-(length(c(1:B)[Intervals[ ,1]>est]) + length(c(1:B)[Intervals[ ,2]<est]))/B*100
+
+
+# The code below constructs a 95% CI for the deathtoll due to Maria in the first
+# 42 days using a normal approximation
+normalapprox<-function(x=19*83,y=11*119+2906,M=3350535*19,N=3350535*42){
+N*prop.test(x = c(y, x), n = c(N, M))$conf.int
+}
+
+normalapprox() #CI for first 42 days after Maria
+
+normalapprox(y=119*11,N=3350535*11) #CI for first 11 days after Maria
+
+
+#CI for first 42 days after Maria assuming the October population size is 3250000
+normalapprox(y=(119*11+2906),N=(3350535*11+3200000*31)) 
