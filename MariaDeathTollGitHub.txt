@@ -5,6 +5,7 @@
 #     - checks the coverage of the Binomial and Poisson models
 #     - uses a normal approximation
 # By Roberto Rivera and Wolfgang Rolke, December 11,2017
+# On December 21, 2017 code was updated with mortality data revisions from the Demographic Registry Office.
 
 # A normal approximation is also applied
 library(RConics)
