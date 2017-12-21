@@ -9,9 +9,9 @@
 # A normal approximation is also applied
 library(RConics)
 pr.deaths <-
-function(T=3350535,n=11,y=11*119,model="Binomial", doGraph=TRUE, doSim = FALSE,museq=1000) {
+function(T=3350535,n=11,y=1317,model="Binomial", doGraph=TRUE, doSim = FALSE,museq=1000) {
   m=19;
-  x <- 83*m
+  x <- 1582
   N <- T*n  #To account for pop size reduction in October use here: (T*11+3200000*31)
   M <- T*m
   mle<-y/N - x/M
@@ -97,28 +97,28 @@ return(
   round(c(Left, Right)*ifelse(model=="Binomial", N , n), 1)
 }
     
-pr.deaths(y=(11*119+2906),n=42)    #CI for death toll first 42 days
+pr.deaths(y=(1317+3002),n=42)    #CI for death toll first 42 days
 
-pr.deaths(y=(11*119+2906),n=42,model="Poisson")    #CI for death toll first 42 days, Poisson model
+pr.deaths(y=(1317+3002),n=42,model="Poisson")    #CI for death toll first 42 days, Poisson model
 
 pr.deaths() #CI for death toll first 11 days
 
 # To assess coverage
 
 B <- 10000
-est<-((119*11+2906)/(11+31)-83)*(11+31)
+est<-((1317+3002)/(11+31)-1582/19)*(11+31)
 Intervals <- matrix(0, B, 2)
 set.seed(48481)
-for(i in 1:B) Intervals[i, ] <- pr.deaths(y=(11*119+2906),n=42,doSim = TRUE, doGraph = FALSE)
+for(i in 1:B) Intervals[i, ] <- pr.deaths(y=(1317+3002),n=42,doSim = TRUE, doGraph = FALSE)
 100-(length(c(1:B)[Intervals[ ,1]>est]) + length(c(1:B)[Intervals[ ,2]<est]))/B*100
 set.seed(48482)
-for(i in 1:B) Intervals[i, ] <- pr.deaths(y=(11*119+2906),n=42,model="Poisson", doSim = TRUE, doGraph = FALSE)
+for(i in 1:B) Intervals[i, ] <- pr.deaths(y=(1317+3002),n=42,model="Poisson", doSim = TRUE, doGraph = FALSE)
 100-(length(c(1:B)[Intervals[ ,1]>est]) + length(c(1:B)[Intervals[ ,2]<est]))/B*100
 
 
 # The code below constructs a 95% CI for the deathtoll due to Maria in the first
 # 42 days using a normal approximation
-normalapprox<-function(x=19*83,y=11*119+2906,M=3350535*19,N=3350535*42){
+normalapprox<-function(x=1582,y=1317+3002,M=3350535*19,N=3350535*42){
 N*prop.test(x = c(y, x), n = c(N, M))$conf.int
 }
 
@@ -127,5 +127,5 @@ normalapprox() #CI for first 42 days after Maria
 normalapprox(y=119*11,N=3350535*11) #CI for first 11 days after Maria
 
 
-#CI for first 42 days after Maria assuming the October population size is 3250000
-normalapprox(y=(119*11+2906),N=(3350535*11+3200000*31)) 
+#CI for first 42 days after Maria assuming the October population size is 3200000
+normalapprox(y=(1317+3002),N=(3350535*11+3200000*31)) 
